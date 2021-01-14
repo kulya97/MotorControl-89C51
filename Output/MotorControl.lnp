@@ -1,0 +1,4 @@
+".\Output\main.obj",
+".\Output\uart.obj" 
+TO ".\Output\MotorControl" 
+PRINT(".\Listings\MotorControl.m51") RAMSIZE(256) 

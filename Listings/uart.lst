@@ -1,0 +1,52 @@
+C51 COMPILER V9.60.0.0   UART                                                              01/14/2021 19:35:12 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE UART
+OBJECT MODULE PLACED IN .\Output\uart.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Driver\Src\uart.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\Inc;.\Driver\In
+                    -c;.\User) DEBUG OBJECTEXTEND PRINT(.\Listings\uart.lst) TABS(2) OBJECT(.\Output\uart.obj)
+
+line level    source
+
+   1          #include "uart.h"
+   2          void uart_init(u8 baud)
+   3          {
+   4   1        SCON=0X50;      //设置为工作方式1
+   5   1        TMOD|=0X20;     //设置计数器工作方式2
+   6   1        PCON=0X80;      //波特率加倍
+   7   1        TH1=0XF3;       //计数器初始值设置，注意波特率是4800的
+   8   1        TL1=0XF3;
+   9   1        ES=1;           //打开接收中断
+  10   1        EA=1;           //打开总中断
+  11   1        TR1=1;          //打开计数器
+  12   1      }
+*** WARNING C280 IN LINE 2 OF Driver\Src\uart.c: 'baud': unreferenced local variable
+  13          
+  14          void send8bit(u8 dat)
+  15           {
+  16   1        SBUF=dat;
+  17   1        while(!TI);
+  18   1        TI=0;
+  19   1       }
+  20           void send(u8 *str,u16 length)
+  21           {    
+  22   1         int i=0;
+  23   1         for(i=0;i<length;i++)
+  24   1         {     
+  25   2         send8bit(*(str+i));
+  26   2         }
+  27   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     79    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
