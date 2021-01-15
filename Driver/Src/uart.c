@@ -9,6 +9,7 @@ void uart_init(u8 baud)
 	ES=1;						//打开接收中断
 	EA=1;						//打开总中断
 	TR1=1;					//打开计数器
+	
 }
 
 void send8bit(u8 dat)

@@ -1,169 +1,147 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              01/14/2021 19:35:12 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 13:14:21 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
 OBJECT MODULE PLACED IN .\Output\main.obj
 COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE User\main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\Inc;.\Driver\Inc;.\Us
-                    -er) DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Output\main.obj)
+                    -er;D:\Keil_v5\C51\INC\SiLABS\shared\si8051Base) DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Output\ma
+                    -in.obj)
 
 line level    source
 
    1          #include <reg52.h>
    2          #include "commond.h"
    3          #include "uart.h"
-   4          #define led P2
+   4          
    5          sbit dir=P2^0;
    6          sbit pul =P2^1;
-   7          #define MAX_BUFF_value 20
-   8          u8 mbuf[MAX_BUFF_value];
-   9          u8 buf[MAX_BUFF_value];
-  10          
-  11          u16 uart_idle_count;
-  12          u8 uart_readbuf_count;
-  13          u8 uart_read_ready_flag;
-  14          
-  15          u16 MotorStep = 50000;
-  16          u16 pwm_count = 0;
-  17          u16 pos = 0;
-  18          
-  19          u8 motor_dir;
-  20          u8 motor_move;
-  21          
-  22          u8 status_data[8];
-  23          void delay_ms(u16 ms)
-  24          {
-  25   1        u8 i,j;
-  26   1        for(j=0;j<ms;j++)
-  27   1         for(i=0;i<120;i++);
-  28   1      }
-  29          void delay(u16 i)
+   7          
+   8          #define MAX_BUFF_value 18
+   9          u8 mbuf[MAX_BUFF_value];
+  10          u8 buf[MAX_BUFF_value];
+  11          /****************************************/
+  12          u16 uart_idle_count;//空闲计数
+  13          u8 uart_readbuf_count;//读取字节数计数
+  14          /****************************************/
+  15          u32 MotorStep = 50000;//电机步长
+  16          u32 pwm_count = 0;//pwm计数
+  17          u32 pos = 0;//电机当前位置
+  18          u16 motor_speed=40;//电机速度
+  19          bit motor_dir;//电机方向
+  20          bit motor_move;//电机运动状态
+  21          u8 status_data[20];
+  22          /****************************************/
+  23          
+  24          void delay(u32 i)
+  25          {
+  26   1        while(i--); 
+  27   1      }
+  28          
+  29          void Timer0Init()
   30          {
-  31   1        while(i--); 
-  32   1      }
-  33          void Timer0Init()
-  34          {
-  35   1        TMOD|=0X01;//选择为定时器0模式，工作方式1，仅用TR0打开启动。
-  36   1      
-  37   1        TH0=0XFC; //给定时器赋初值，定时1ms
-  38   1        TL0=0X18; 
-  39   1        ET0=1;//打开定时器0中断允许
-  40   1        EA=1;//打开总中断
-  41   1        TR0=1;//打开定时器     
-  42   1      }
-  43          void Timer1Init()
-  44          {
-  45   1        TMOD|=0X10;//选择为定时器1模式，工作方式1，仅用TR1打开启动。
-  46   1      
-  47   1        TH1=0XFC; //给定时器赋初值，定时1ms
-  48   1        TL1=0X18; 
-  49   1        ET1=1;//打开定时器1中断允许
-  50   1        EA=1;//打开总中断
-  51   1        TR1=1;//打开定时器     
-  52   1      }
-  53          
-  54          int main()
-C51 COMPILER V9.60.0.0   MAIN                                                              01/14/2021 19:35:12 PAGE 2   
+  31   1        TMOD|=0X01;//选择为定时器0模式，工作方式1，仅用TR0打开启动。
+  32   1        TH0=0XFC; //给定时器赋初值，定时1ms
+  33   1        TL0=0X18; 
+  34   1        ET0=1;//打开定时器0中断允许
+  35   1        EA=1;//打开总中断
+  36   1        TR0=1;//打开定时器     
+  37   1      }
+  38          
+  39          int main()
+  40          {
+  41   1        Timer0Init();  //定时器0初始化
+  42   1        uart_init(9600);
+  43   1        dir=0;
+  44   1        pul=0;
+  45   1        delay(5000);
+  46   1        while(1)
+  47   1        {
+  48   2         if(motor_move)
+  49   2         {
+  50   3          pul=~pul;
+  51   3           pos++;
+  52   3           if((++pwm_count)>=MotorStep)
+  53   3           {
+C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 13:14:21 PAGE 2   
 
-  55          {
-  56   1        Timer0Init();  //定时器0初始化
-  57   1        uart_init(9600);
-  58   1        //led=0xfe;
-  59   1        dir=0;
-  60   1        pul=0;
-  61   1        delay(5000);
-  62   1        while(1)
-  63   1        {
-  64   2          //pul=~pul;
-  65   2         if(motor_move)
-  66   2         {
-  67   3            pul=~pul;
-  68   3           pos++;
-  69   3           if((++pwm_count)>=MotorStep)
-  70   3           {
-  71   4             pwm_count=0;
-  72   4             motor_move=0;
-  73   4           }
-  74   3           delay(1);
-  75   3         }
-  76   2        }
-  77   1      }
-  78          void Timer0() interrupt 1
-  79          {
-  80   1        static u16 i;
-  81   1        TH0=0XFC; //给定时器赋初值，定时1ms
-  82   1        TL0=0X18;
-  83   1      if(uart_readbuf_count!=0)
-  84   1        {
-  85   2          if(++uart_idle_count>10)
-  86   2          {
-  87   3            //send(mbuf,uart_readbuf_count);
-  88   3            uart_idle_count=0;
-  89   3            uart_readbuf_count=0;
-  90   3            uart_read_ready_flag=1;
-  91   3            if (mbuf[0] == 0x30 && mbuf[1] == 0xff) {
-  92   4      //      HAL_UART_Transmit(&huart1, result_ok, sizeof(result_ok), 50);
-  93   4          } else {
-  94   4            return;
-  95   4          }
-  96   3          if (mbuf[2] == 0x00) { //设置移动步数
-  97   4            MotorStep = mbuf[3];
+  54   4             pwm_count=0;
+  55   4             motor_move=0;
+  56   4           }
+  57   3           delay(motor_speed);
+  58   3         }
+  59   2        }
+  60   1      }
+  61          
+  62          void Timer0() interrupt 1
+  63          {
+  64   1        TH0=0XFC; //给定时器赋初值，定时1ms
+  65   1        TL0=0X18;
+  66   1      if(uart_readbuf_count!=0)
+  67   1        {
+  68   2          if(++uart_idle_count>20)
+  69   2          {
+  70   3            uart_idle_count=0;
+  71   3            uart_readbuf_count=0;
+  72   3           if (mbuf[0] != 0x30 || mbuf[1] != 0xff) {
+  73   4            return;
+  74   4          }
+  75   3          if (mbuf[2] == 0x00) { //设置移动步数
+  76   4            MotorStep = mbuf[3];
+  77   4            return;
+  78   4          } else if (mbuf[2] == 0x01) { //移动
+  79   4            motor_dir=(mbuf[3]==0x00)?0:1;
+  80   4            
+  81   4            motor_speed=(mbuf[4]&0xff)<<8|(mbuf[5]&0xff);
+  82   4            motor_speed=(motor_speed>80)?80:motor_speed;
+  83   4            motor_speed=(motor_speed<2)?2:motor_speed;
+  84   4            MotorStep=(mbuf[6]&0xff)<<24|(mbuf[7]&0xff)<<16|(mbuf[8]&0xff)<<8|(mbuf[9]&0xff);
+  85   4            MotorStep=(MotorStep<0)?0:MotorStep;
+  86   4            
+  87   4            dir=motor_dir;
+  88   4            delay(2);
+  89   4            motor_move=1;
+  90   4            return;
+  91   4          } else if (mbuf[2] == 0x02) { //停止
+  92   4            motor_move=0;
+  93   4            return;
+  94   4          } else if (mbuf[2] == 0x03) { //查询
+  95   4            
+  96   4            sprintf(status_data, "%d,%d,%d\n", pos,MotorStep,motor_dir);
+  97   4            send(status_data, sizeof(status_data));
   98   4            return;
-  99   4          } else if (mbuf[2] == 0x01) { //移动
- 100   4            if(mbuf[3] == 0x00)
- 101   4            {
- 102   5              motor_dir=0;
- 103   5            }
- 104   4            else if(mbuf[3] == 0x01)
- 105   4            {
- 106   5              motor_dir=1;
- 107   5            }
- 108   4            dir=motor_dir;
- 109   4            delay(2);
- 110   4            motor_move=1;
- 111   4            return;
- 112   4          } else if (mbuf[2] == 0x02) { //停止
- 113   4            motor_move=0;
- 114   4            return;
- 115   4          } else if (mbuf[2] == 0x03) { //查询
- 116   4            
-C51 COMPILER V9.60.0.0   MAIN                                                              01/14/2021 19:35:12 PAGE 3   
+  99   4            //HAL_UART_Transmit(&huart1, "\n", sizeof("\n"), 50);
+ 100   4          }
+ 101   3            
+ 102   3          }
+ 103   2        }
+ 104   1      }
+ 105          
+ 106          
+ 107          void Usart() interrupt 4
+ 108          {
+ 109   1          if(RI == 1) {  //如果收到.
+ 110   2            RI = 0;      //清除标志.
+ 111   2            uart_idle_count=0;
+ 112   2            if(uart_readbuf_count<MAX_BUFF_value)
+ 113   2            { 
+ 114   3              mbuf[uart_readbuf_count++]=SBUF;
+ 115   3              uart_idle_count=0;
+C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 13:14:21 PAGE 3   
 
- 117   4            sprintf(status_data, "%d\n", pos);
- 118   4            send( status_data, sizeof(status_data));
- 119   4            return;
- 120   4            //HAL_UART_Transmit(&huart1, "\n", sizeof("\n"), 50);
- 121   4          }
- 122   3            
- 123   3          }
- 124   2        }
- 125   1      }
-*** WARNING C280 IN LINE 80 OF User\main.c: 'i': unreferenced local variable
- 126          
- 127          
- 128          void Usart() interrupt 4
- 129          {
- 130   1          u8 mbuff;
- 131   1          if(RI == 1) {  //如果收到.
- 132   2            RI = 0;      //清除标志.
- 133   2            uart_idle_count=0;
- 134   2            if(uart_readbuf_count<MAX_BUFF_value)
- 135   2            { mbuff = SBUF;  //接收.
- 136   3              mbuf[uart_readbuf_count++]=SBUF;
- 137   3              uart_idle_count=0;
- 138   3            }
- 139   2          }
- 140   1      }
+ 116   3            }
+ 117   2          }
+ 118   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    422    ----
-   CONSTANT SIZE    =      4    ----
+   CODE SIZE        =    600    ----
+   CONSTANT SIZE    =     10    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     62       1
+   DATA SIZE        =     73       4
    IDATA SIZE       =   ----    ----
-   BIT SIZE         =   ----    ----
+   BIT SIZE         =      2    ----
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
