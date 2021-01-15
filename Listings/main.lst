@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 13:14:21 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 17:38:41 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -58,83 +58,84 @@ line level    source
   47   1        {
   48   2         if(motor_move)
   49   2         {
-  50   3          pul=~pul;
-  51   3           pos++;
-  52   3           if((++pwm_count)>=MotorStep)
-  53   3           {
-C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 13:14:21 PAGE 2   
+  50   3            delay(motor_speed);
+  51   3          pul=~pul;
+  52   3           pos++;
+  53   3           if((++pwm_count)>=MotorStep)
+C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 17:38:41 PAGE 2   
 
-  54   4             pwm_count=0;
-  55   4             motor_move=0;
-  56   4           }
-  57   3           delay(motor_speed);
-  58   3         }
-  59   2        }
-  60   1      }
-  61          
-  62          void Timer0() interrupt 1
-  63          {
-  64   1        TH0=0XFC; //给定时器赋初值，定时1ms
-  65   1        TL0=0X18;
-  66   1      if(uart_readbuf_count!=0)
-  67   1        {
-  68   2          if(++uart_idle_count>20)
-  69   2          {
-  70   3            uart_idle_count=0;
-  71   3            uart_readbuf_count=0;
-  72   3           if (mbuf[0] != 0x30 || mbuf[1] != 0xff) {
-  73   4            return;
-  74   4          }
-  75   3          if (mbuf[2] == 0x00) { //设置移动步数
-  76   4            MotorStep = mbuf[3];
-  77   4            return;
-  78   4          } else if (mbuf[2] == 0x01) { //移动
-  79   4            motor_dir=(mbuf[3]==0x00)?0:1;
-  80   4            
-  81   4            motor_speed=(mbuf[4]&0xff)<<8|(mbuf[5]&0xff);
-  82   4            motor_speed=(motor_speed>80)?80:motor_speed;
-  83   4            motor_speed=(motor_speed<2)?2:motor_speed;
-  84   4            MotorStep=(mbuf[6]&0xff)<<24|(mbuf[7]&0xff)<<16|(mbuf[8]&0xff)<<8|(mbuf[9]&0xff);
-  85   4            MotorStep=(MotorStep<0)?0:MotorStep;
-  86   4            
-  87   4            dir=motor_dir;
-  88   4            delay(2);
-  89   4            motor_move=1;
-  90   4            return;
-  91   4          } else if (mbuf[2] == 0x02) { //停止
-  92   4            motor_move=0;
-  93   4            return;
-  94   4          } else if (mbuf[2] == 0x03) { //查询
-  95   4            
-  96   4            sprintf(status_data, "%d,%d,%d\n", pos,MotorStep,motor_dir);
-  97   4            send(status_data, sizeof(status_data));
-  98   4            return;
-  99   4            //HAL_UART_Transmit(&huart1, "\n", sizeof("\n"), 50);
- 100   4          }
- 101   3            
- 102   3          }
- 103   2        }
- 104   1      }
- 105          
+  54   3           {
+  55   4            
+  56   4             pwm_count=0;
+  57   4             motor_move=0;
+  58   4           }
+  59   3           
+  60   3         }
+  61   2        }
+  62   1      }
+  63          
+  64          void Timer0() interrupt 1
+  65          {
+  66   1        TH0=0XFC; //给定时器赋初值，定时1ms
+  67   1        TL0=0X18;
+  68   1      if(uart_readbuf_count!=0)
+  69   1        {
+  70   2          if(++uart_idle_count>20)
+  71   2          {
+  72   3            uart_idle_count=0;
+  73   3            uart_readbuf_count=0;
+  74   3           if (mbuf[0] != 0x30 || mbuf[1] != 0xff) {
+  75   4            return;
+  76   4          }
+  77   3          if (mbuf[2] == 0x00) { //设置移动步数
+  78   4            MotorStep = mbuf[3];
+  79   4            return;
+  80   4          } else if (mbuf[2] == 0x01) { //移动
+  81   4            motor_dir=(mbuf[3]==0x00)?0:1;
+  82   4            
+  83   4            motor_speed=(mbuf[4]&0xff)<<8|(mbuf[5]&0xff);
+  84   4            motor_speed=(motor_speed>80)?80:motor_speed;
+  85   4            motor_speed=(motor_speed<2)?2:motor_speed;
+  86   4            MotorStep=((mbuf[6]&0xff)<<8|(mbuf[7]&0xff)<<16)|(mbuf[8]&0xff)<<8|(mbuf[9]&0xff);
+  87   4            MotorStep=(MotorStep<0)?0:MotorStep;
+  88   4            
+  89   4            dir=motor_dir;
+  90   4            motor_move=1;
+  91   4            //send8bit(0x30);
+  92   4            return;
+  93   4          } else if (mbuf[2] == 0x02) { //停止
+  94   4            motor_move=0;
+  95   4            return;
+  96   4          } else if (mbuf[2] == 0x03) { //查询
+  97   4            
+  98   4            sprintf(status_data, "%d,%d,%d\n", pos,MotorStep,motor_dir);
+  99   4            send(status_data, sizeof(status_data));
+ 100   4            return;
+ 101   4          }
+ 102   3            
+ 103   3          }
+ 104   2        }
+ 105   1      }
  106          
- 107          void Usart() interrupt 4
- 108          {
- 109   1          if(RI == 1) {  //如果收到.
- 110   2            RI = 0;      //清除标志.
- 111   2            uart_idle_count=0;
- 112   2            if(uart_readbuf_count<MAX_BUFF_value)
- 113   2            { 
- 114   3              mbuf[uart_readbuf_count++]=SBUF;
- 115   3              uart_idle_count=0;
-C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 13:14:21 PAGE 3   
+ 107          
+ 108          void Usart() interrupt 4
+ 109          {
+ 110   1          if(RI == 1) {  //如果收到.
+ 111   2            RI = 0;      //清除标志.
+ 112   2            uart_idle_count=0;
+ 113   2            if(uart_readbuf_count<MAX_BUFF_value)
+ 114   2            { 
+ 115   3              mbuf[uart_readbuf_count++]=SBUF;
+C51 COMPILER V9.60.0.0   MAIN                                                              01/15/2021 17:38:41 PAGE 3   
 
- 116   3            }
- 117   2          }
- 118   1      }
+ 116   3              uart_idle_count=0;
+ 117   3            }
+ 118   2          }
+ 119   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    600    ----
+   CODE SIZE        =    573    ----
    CONSTANT SIZE    =     10    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----

@@ -18,7 +18,7 @@ void send8bit(u8 dat)
 	while(!TI);
 	TI=0;
  }
- void send(u8 *str,u16 length)
+void send(u8 *str,u16 length)
  {		
 	 int i=0;
    for(i=0;i<length;i++)

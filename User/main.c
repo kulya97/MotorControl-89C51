@@ -47,14 +47,16 @@ int main()
 	{
    if(motor_move)
 	 {
+		  delay(motor_speed);
 		pul=~pul;
 		 pos++;
 		 if((++pwm_count)>=MotorStep)
 		 {
+			
 			 pwm_count=0;
 			 motor_move=0;
 		 }
-		 delay(motor_speed);
+		 
 	 }
 	}
 }
@@ -81,12 +83,12 @@ if(uart_readbuf_count!=0)
 			motor_speed=(mbuf[4]&0xff)<<8|(mbuf[5]&0xff);
 			motor_speed=(motor_speed>80)?80:motor_speed;
 			motor_speed=(motor_speed<2)?2:motor_speed;
-		  MotorStep=(mbuf[6]&0xff)<<24|(mbuf[7]&0xff)<<16|(mbuf[8]&0xff)<<8|(mbuf[9]&0xff);
+		  MotorStep=((mbuf[6]&0xff)<<8|(mbuf[7]&0xff)<<16)|(mbuf[8]&0xff)<<8|(mbuf[9]&0xff);
 			MotorStep=(MotorStep<0)?0:MotorStep;
 			
 			dir=motor_dir;
-			delay(2);
 			motor_move=1;
+			//send8bit(0x30);
 			return;
 		} else if (mbuf[2] == 0x02) { //停止
 			motor_move=0;
@@ -96,7 +98,6 @@ if(uart_readbuf_count!=0)
 			sprintf(status_data, "%d,%d,%d\n", pos,MotorStep,motor_dir);
 			send(status_data, sizeof(status_data));
 			return;
-			//HAL_UART_Transmit(&huart1, "\n", sizeof("\n"), 50);
 		}
 			
 		}
